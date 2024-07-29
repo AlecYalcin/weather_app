@@ -1,38 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:Temporal/models/weather_model.dart';
-import 'package:Temporal/services/weather_service.dart';
+import 'package:weather_app/components/my_appbar.dart';
+import 'package:weather_app/models/weather_model.dart';
+import 'package:weather_app/services/weather_service.dart';
 
+// ignore: must_be_immutable
 class WeatherPage extends StatefulWidget {
-  const WeatherPage({super.key});
+  final WeatherService weatherService;
+
+  const WeatherPage({super.key, required this.weatherService});
 
   @override
   State<WeatherPage> createState() => _WeatherPageState();
 }
 
 class _WeatherPageState extends State<WeatherPage> {
-  // api key
-  final _weatherService = WeatherService("6e1a2ede6e5df1929f7400be08805b2d");
-
-  Weather? _weather;
+  Weather? _currentWeather;
 
   // fetch weather
   _fetchWeather() async {
     // get current city
-    String cityName = await _weatherService.getCurrentCity();
+    String cityName = await widget.weatherService.getCurrentCity();
 
     // get weather for city
     try {
-      final weather = await _weatherService.getWeather(cityName);
+      final weather = await widget.weatherService.getWeather(cityName);
       setState(() {
-        _weather = weather;
+        _currentWeather = weather;
       });
     }
-
     // any error
     catch (e) {
-      print(e);
+      print(e.toString());
     }
+  }
+
+  // refresh weather
+  _updateWeather(Weather newWeather) {
+    setState(() {
+      _currentWeather = newWeather;
+    });
   }
 
   // weather animations
@@ -93,7 +100,11 @@ class _WeatherPageState extends State<WeatherPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[800],
+      backgroundColor: Colors.grey[600],
+      appBar: MyAppBar(
+        onWeatherSelected: _updateWeather,
+        weatherService: widget.weatherService,
+      ),
       body: Center(
         child: SingleChildScrollView(
           child: ConstrainedBox(
@@ -108,20 +119,21 @@ class _WeatherPageState extends State<WeatherPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     Text(
-                      _weather?.cityName ?? "loading city..",
+                      _currentWeather?.cityName ?? "loading city..",
                       style: const TextStyle(
-                        fontSize: 24,
+                        fontSize: 32,
                         color: Colors.white,
                         fontFamily: 'arial',
                       ),
                     ),
                     const SizedBox(width: 5),
-                    const Icon(Icons.push_pin, size: 24, color: Colors.white),
+                    const Icon(Icons.push_pin, size: 32, color: Colors.white),
                   ],
                 ),
 
                 // animation
-                Lottie.asset(getWeatherAnimation(_weather?.mainCondition)),
+                Lottie.asset(
+                    getWeatherAnimation(_currentWeather?.mainCondition)),
 
                 // temperature
                 Row(
@@ -131,7 +143,7 @@ class _WeatherPageState extends State<WeatherPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          '${_weather?.temperature.round().toString()}°C',
+                          '${_currentWeather?.temperature.round().toString()}°C',
                           style: const TextStyle(
                             fontSize: 32,
                             fontFamily: 'arial',
@@ -139,7 +151,9 @@ class _WeatherPageState extends State<WeatherPage> {
                           ),
                         ),
                         // condition
-                        Text(getWeatherTranslation(_weather?.mainCondition),
+                        Text(
+                            getWeatherTranslation(
+                                _currentWeather?.mainCondition),
                             style: const TextStyle(
                               fontSize: 18,
                               fontFamily: 'arial',

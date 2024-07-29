@@ -1,14 +1,16 @@
 import 'dart:convert';
-//import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:Temporal/models/weather_model.dart';
+import 'package:weather_app/models/weather_model.dart';
 import 'package:http/http.dart' as http;
 
 class WeatherService {
   static const BASE_URL = 'http://api.openweathermap.org/data/2.5/weather';
+  static const BASE_URL_GOOGLE =
+      'https://maps.googleapis.com/maps/api/geocode/json';
   final String apiKey;
+  final String googleApiKey;
 
-  WeatherService(this.apiKey);
+  WeatherService(this.apiKey, this.googleApiKey);
 
   Future<Weather> getWeather(String latlon) async {
     final response = await http
@@ -41,5 +43,20 @@ class WeatherService {
     //String? city = placemarks[0].locality;
 
     return latlon;
+  }
+
+  Future<Weather>? getSearchQuery(String query) async {
+    query = query.replaceAll(" ", "+");
+    final response = await http
+        .get(Uri.parse('$BASE_URL_GOOGLE?address=$query&key=$googleApiKey'));
+
+    if (response.statusCode == 200) {
+      Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+      var position = jsonResponse['results'][0]['geometry']['location'];
+      String? latlon = "lat=${position['lat']}&lon=${position['lng']}";
+      return getWeather(latlon);
+    } else {
+      throw Exception('Failed to localize weather data');
+    }
   }
 }
